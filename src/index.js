@@ -1,71 +1,79 @@
-const express = require("express");
-const app = express();
-const path = require("path");
-const clientPort = 1312;
+const logger = require('./logger')
+const proxyServer = require('./proxy')
+const broadcaster = require('./broadcaster')
 
-app.use(express.static(path.join(__dirname, "public")));
-app.listen(clientPort, "localhost", () => {
-  console.log("Client is up and running at 1312");
-});
-
-const proxy = require("udp-proxy"),
-  options = {
-    address: "192.168.1.1", // DNS Server Address
-    port: 53,
-    ipv6: false,
-    localaddress: "127.0.0.1",
-    localport: 53,
-    localipv6: false,
-    // proxyaddress: '::0',
-    timeOutTime: 10000,
-  };
-
-const server = proxy.createServer(options);
-
-server.on("listening", function (details) {
-  console.log(
+proxyServer.on("listening", function (details) {
+  logger.log({
+    level: 'info',
+    message: 
     "udp-proxy-server ready on " +
       details.server.family +
       "  " +
       details.server.address +
       ":" +
       details.server.port
-  );
-  console.log(
-    "traffic is forwarded to " +
-      details.target.family +
-      "  " +
-      details.target.address +
-      ":" +
-      details.target.port
-  );
+  })
+
+  logger.log({
+    level: logger.levels.info,
+    message: "traffic is forwarded to " +
+    details.target.family +
+    "  " +
+    details.target.address +
+    ":" +
+    details.target.port
+  })
 });
 
-server.on("bound", function (details) {
-  console.log(
-    "proxy is bound to " + details.route.address + ":" + details.route.port
-  );
-  console.log(
-    "peer is bound to " + details.peer.address + ":" + details.peer.port
-  );
+proxyServer.on("bound", function (details) {
+  logger.log({
+    level: logger.levels.info,
+    message: "proxy is bound to " + details.route.address + ":" + details.route.port
+  })
+
+  logger.log({
+    level: logger.levels.info,
+    message: "peer is bound to " + details.peer.address + ":" + details.peer.port
+  })
 });
 
-server.on("message", function (message, sender) {
-  console.log("message from " + sender.address + ":" + sender.port);
+proxyServer.on("message", function (message, sender) {
+  broadcaster.sendQuery({message, sender})
+  logger.log({
+    level: logger.levels.info,
+    message: "message from " + sender.address + ":" + sender.port
+  })
 });
 
-server.on("proxyMsg", function (message, sender, peer) {
-  console.log("answer from " + sender.address + ":" + sender.port);
+proxyServer.on("proxyMsg", function (message, sender, peer) {
+  broadcaster.sendAnswer({
+    message,
+    sender,
+    peer
+  })
+  logger.log({
+    level: logger.levels.info,
+    message:"answer from " + sender.address + ":" + sender.port
+  })
 });
 
-server.on("proxyClose", function (peer) {
-  console.log("disconnecting socket from " + peer.address);
+proxyServer.on("proxyClose", function (peer) {
+  logger.log({
+    level: logger.levels.info,
+    message:"disconnecting socket from " + peer.address
+  })
 });
 
-server.on("proxyError", function (err) {
-  console.log("ProxyError! " + err);
+proxyServer.on("proxyError", function (err) {
+  logger.log({
+    level: logger.levels.info,
+    message:"ProxyError! " + err
+  })
 });
 
-server.on("error", function (err) {
-  console.log("Error! " + err);
+proxyServer.on("error", function (err) {
+  logger.log({
+    level: logger.levels.info,
+    message:"Error! " + err
+  })
 });
