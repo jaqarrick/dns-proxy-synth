@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "start": "node src/index.js",
+    "start:dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "udp-proxy": "^1.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.21"
+  }
+}
